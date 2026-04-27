@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: todo-postgres
+    environment:
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password
+      POSTGRES_DB: todo_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  nginx:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    container_name: todo-nginx
+    depends_on:
+      - client
+      - server
+    restart: always
+    ports:
+      - "3050:80"
+  server:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    container_name: todo-server
+    depends_on:
+      - postgres
+    environment:
+      PGHOST: postgres
+      PGUSER: todo_user
+      PGPASSWORD: todo_password
+      PGDATABASE: todo_db
+      PGPORT: 5432
+      PORT: 5000
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  client:
+    environment:
+      - WDS_SOCKET_PORT=0
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    container_name: todo-client
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
+    worker:
+      build:
+        dockerfile: Dockerfile.dev
+        context: ./worker
+      container_name: todo-worker
+      depends_on:
+        - postgres
+      restart: unless-stopped
+      environment:
+        DATABASE_URL: postgres://postgres:postgres@postgres:5432/todo_app
+        PGHOST: postgres
+        WORKER_NAME: worker_1
+        POLL_INTERVAL_MS: 2000
+
+volumes:
+  postgres-data:

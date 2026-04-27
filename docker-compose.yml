@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: todo-postgres
+    environment:
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password
+      POSTGRES_DB: todo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  nginx:
+    build:
+      context: ./nginx
+    container_name: todo-nginx
+    depends_on:
+      - client
+      - server
+    restart: always
+    ports:
+      - "3050:80"
+  server:
+    build:
+      context: ./server
+    container_name: todo-server
+    expose:
+      - "5000"
+    depends_on:
+      - postgres
+    environment:
+      PGHOST: postgres
+      PGUSER: todo_user
+      PGPASSWORD: todo_password
+      PGDATABASE: todo_db
+      PGPORT: 5432
+      PORT: 5000
+    
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    command: npm run start
+
+  client:
+    build:
+      context: ./client
+    container_name: todo-client
+    depends_on:
+      - server
+    expose:
+      - "3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: npm run start
+
+
+
+volumes:
+  postgres-data:
