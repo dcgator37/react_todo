@@ -1,12 +1,9 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { TextEncoder, TextDecoder } from 'util'
-import { BrowserRouter as Router, Route, Link, Routes } from 'react-router';
+import { BrowserRouter as Router, Route, Link, Routes } from 'react-router-dom';
 import Todo from './Todo';
 
-global.TextEncoder = TextEncoder
-global.TextDecoder = TextDecoder
 
 function App() {
   return (
