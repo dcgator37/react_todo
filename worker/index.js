@@ -5,7 +5,11 @@ const pool = new Pool({
   host: process.env.pgHost,
   database: process.env.pgDatabase,
   password: process.env.pgPassword,
-  port: process.env.pgPort
+  port: process.env.pgPort,
+  ssl:
+    process.env.NODE_ENV !== 'production'
+      ? false
+      : { rejectUnauthorized: false },
 });
 
 const WORKER_NAME = process.env.WORKER_NAME || "worker";
