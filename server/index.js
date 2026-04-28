@@ -35,6 +35,21 @@ const pgClient = new Pool({
       );
     `);
 
+    await pgClient.query(`
+  CREATE TABLE IF NOT EXISTS job_queue (
+    id SERIAL PRIMARY KEY,
+    todo_id INTEGER,
+    job_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    result TEXT,
+    locked_by VARCHAR(100),
+    locked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
     console.log("Database table is ready.");
   } catch (error) {
     console.error("Error initializing database:", error);
@@ -66,7 +81,7 @@ app.get("/", (req, res) => {
 
 // Get all todo items and count
 app.get("/todos", async (req, res) => {
-    console.log("GET /api/todos was hit");
+    //console.log("GET /api/todos was hit");
   try {
     const result = await pgClient.query(
       "SELECT * FROM todos ORDER BY id ASC"
@@ -94,6 +109,13 @@ app.post("/todos", async (req, res) => {
     const result = await pgClient.query(
       "INSERT INTO todos (item_text) VALUES ($1) RETURNING *",
       [item_text.trim()]
+    );
+
+    const newTodo = result.rows[0];
+
+    await pgClient.query(
+      "INSERT INTO job_queue (todo_id, job_type, status) VALUES ($1, $2, 'pending')",
+      [newTodo.id, "PROCESS_NEW_TODO"]
     );
 
     res.status(201).json(result.rows[0]);
